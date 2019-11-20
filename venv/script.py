@@ -38,17 +38,17 @@ available_transformations = {
     'blur': random_blur
 }
 
-folder_path = 'images/30'
+sign_type = '30'
+folder_path = 'images/' + sign_type
 generated_folder_path = 'images/generated'
 num_of_generated_files = 10
 
 images = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+f = open("dataset.csv", "w+")
 
 for image in images:
     for i in range(num_of_generated_files):
-        # read image as an two dimensional array of pixels
         image_to_transform = resize_to_params(sk.io.imread(image))
-        # random num of transformation to apply
         num_transformations_to_apply = random.randint(0, len(available_transformations))
 
         num_transformations = 0
@@ -58,6 +58,10 @@ for image in images:
             transformed_image = available_transformations[key](image_to_transform)
             num_transformations += 1
 
-        new_file_path = '%s/%s.jpg' % (generated_folder_path, random_string())
+        generated_name = random_string()
+        new_file_path = '%s/%s.jpg' % (generated_folder_path, generated_name)
+        f.write("%s, %s\n" % (generated_name, sign_type)) #TODO change write to append
 
         io.imsave(new_file_path, transformed_image)
+
+f.close()
