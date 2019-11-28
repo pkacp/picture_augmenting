@@ -32,6 +32,10 @@ def random_noise(image_array: ndarray):
     return sk.util.random_noise(image_array)
 
 
+def make_img_grayscale(image_array: ndarray):
+    return sk.color.rgb2gray(image_array)
+
+
 available_transformations = {
     'rotate': random_rotation,
     'noise': random_noise,
@@ -49,6 +53,7 @@ f = open("dataset.csv", "w+")
 for image in images:
     for i in range(num_of_generated_files):
         image_to_transform = resize_to_params(sk.io.imread(image))
+        image_to_transform = make_img_grayscale(image_to_transform)
         num_transformations_to_apply = random.randint(0, len(available_transformations))
 
         num_transformations = 0
