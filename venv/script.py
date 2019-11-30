@@ -9,9 +9,8 @@ from skimage import filters
 from skimage import io
 
 
-def random_string(string_length=6):
-    letters_and_digits = string.ascii_letters + string.digits
-    return ''.join(random.choice(letters_and_digits) for i in range(string_length))
+def generate_image_name(number):
+    return str(number).zfill(10)
 
 
 def resize_to_params(image_array: ndarray, width=64, height=64):
@@ -42,31 +41,39 @@ available_transformations = {
     'blur': random_blur
 }
 
-sign_type = '30'
-folder_path = 'images/' + sign_type
+folder_path = 'images/'
 generated_folder_path = 'images/generated'
-num_of_generated_files = 10
+desired_folder_size = 5
 
-images = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
-f = open("dataset.csv", "w+")
+subfolders = [f.path for f in os.scandir(folder_path) if f.is_dir() ]
 
-for image in images:
-    for i in range(num_of_generated_files):
-        image_to_transform = resize_to_params(sk.io.imread(image))
-        image_to_transform = make_img_grayscale(image_to_transform)
-        num_transformations_to_apply = random.randint(0, len(available_transformations))
+for dir in subfolders:
+    current_folder_path = dir
+    current_folder_name = os.path.basename(dir)
+    images_in_dir = [os.path.join(current_folder_path, f) for f in os.listdir(current_folder_path) if os.path.isfile(os.path.join(current_folder_path, f))]
+    f = open("dataset.csv", "w+")
 
-        num_transformations = 0
-        transformed_image = None
-        while num_transformations <= num_transformations_to_apply:
-            key = random.choice(list(available_transformations))
-            transformed_image = available_transformations[key](image_to_transform)
-            num_transformations += 1
+    single_image_transformations_number = round(desired_folder_size/len(images_in_dir))
 
-        generated_name = random_string()
-        new_file_path = '%s/%s.jpg' % (generated_folder_path, generated_name)
-        f.write("%s, %s\n" % (generated_name, sign_type)) #TODO change write to append
+    image_number = 1
+    for image in images_in_dir:
+        for i in range(single_image_transformations_number):
+            image_to_transform = resize_to_params(sk.io.imread(image))
+            image_to_transform = make_img_grayscale(image_to_transform)
+            num_transformations_to_apply = random.randint(0, len(available_transformations))
 
-        io.imsave(new_file_path, transformed_image)
+            num_transformations = 0
+            transformed_image = None
+            while num_transformations <= num_transformations_to_apply:
+                key = random.choice(list(available_transformations))
+                transformed_image = available_transformations[key](image_to_transform)
+                num_transformations += 1
 
-f.close()
+            generated_name = generate_image_name(image_number)
+            image_number += 1
+            new_file_path = '%s/%s.jpg' % (generated_folder_path, generated_name)
+            f.write("%s, %s\n" % (generated_name, current_folder_name))
+
+            io.imsave(new_file_path, transformed_image)
+
+    f.close()
