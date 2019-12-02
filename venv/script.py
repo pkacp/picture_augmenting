@@ -46,6 +46,10 @@ def make_img_grayscale(image_array: ndarray):
 
 def whole_function(event):
     print(folder_path)
+    # print(widthTxt.GetLineText(0))
+    width = int(widthTxt.GetLineText(0))
+    heigth = int(heightTxt.GetLineText(0))
+    desired_folder_size = int(filesNumberTxt.GetLineText(0))
     subfolders = [f.path for f in os.scandir(folder_path) if f.is_dir()]
     image_number = 1
     for dir in subfolders:
@@ -59,7 +63,7 @@ def whole_function(event):
 
         for image in images_in_dir:
             for i in range(single_image_transformations_number):
-                image_to_transform = resize_to_params(sk.io.imread(image))
+                image_to_transform = resize_to_params(sk.io.imread(image), width, heigth)
                 if make_bw == True:
                     image_to_transform = make_img_grayscale(image_to_transform)
                 num_transformations_to_apply = random.randint(0, len(available_transformations))
@@ -127,21 +131,22 @@ def open_dir_dialog(event):
     open_dialog = wx.DirDialog(frame, "Choose main folder", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
     open_dialog.ShowModal()
     print(open_dialog.GetPath())
+    folderLabel.SetLabel(open_dialog.GetPath())
     global folder_path
     folder_path = open_dialog.GetPath()
     open_dialog.Destroy()
 
 
 panel = wx.Panel(frame, wx.ID_ANY)
-buttonToExecute = wx.Button(panel, wx.ID_ANY, 'Execute', (10, 400))
-buttonToExecute.Bind(wx.EVT_BUTTON, whole_function)
 
 buttonToGetMainFolder = wx.Button(panel, wx.ID_ANY, 'Select folder with images', (10, 10))
 buttonToGetMainFolder.Bind(wx.EVT_BUTTON, open_dir_dialog)
+folderLabel = wx.StaticText(panel, label="", pos=(200, 15))
 
 color_list = ['RGB', 'Grayscale']
 
-colorRadioBox = wx.RadioBox(panel, label='Choose color palette', pos=(10, 50), choices=color_list, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+colorRadioBox = wx.RadioBox(panel, label='Choose color palette', pos=(10, 50), choices=color_list, majorDimension=1,
+                            style=wx.RA_SPECIFY_ROWS)
 colorRadioBox.Bind(wx.EVT_RADIOBOX, on_color_change)
 
 blurChBox = wx.CheckBox(panel, id=21, label="Blur", pos=(10, 100), name="blurChBox")
@@ -153,6 +158,17 @@ rotationChBox.Bind(wx.EVT_CHECKBOX, on_rotation_change)
 noiseChBox = wx.CheckBox(panel, id=23, label="Noise", pos=(10, 140), name="noiseChBox")
 noiseChBox.Bind(wx.EVT_CHECKBOX, on_noise_change)
 
+wx.StaticText(panel, label="Output width:", pos=(10, 170))
+widthTxt = wx.TextCtrl(panel, value=str(desired_image_width), pos=(120, 160))
+
+wx.StaticText(panel, label="Output height:", pos=(10, 200))
+heightTxt = wx.TextCtrl(panel, value=str(desired_image_height), pos=(120, 190))
+
+wx.StaticText(panel, label="Desired number of files for each category:", pos=(10, 240))
+filesNumberTxt = wx.TextCtrl(panel, value=str(desired_folder_size), pos=(300, 230))
+
+buttonToExecute = wx.Button(panel, wx.ID_ANY, 'Execute', (10, 400))
+buttonToExecute.Bind(wx.EVT_BUTTON, whole_function)
 
 frame.Centre()
 frame.Show()
