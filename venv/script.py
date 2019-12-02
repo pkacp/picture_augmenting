@@ -7,10 +7,11 @@ from skimage import transform
 from skimage import util
 from skimage import filters
 from skimage import io
+from skimage import exposure
 import wx
 
 folder_path = ""
-generated_folder_path = "generated"
+save_folder_path = "generated"
 desired_folder_size = 5
 make_bw = False
 desired_image_width = 32
@@ -24,6 +25,11 @@ def generate_image_name(number):
 
 def resize_to_params(image_array: ndarray, width=desired_image_width, height=desired_image_height):
     return sk.transform.resize(image_array, (width, height))
+
+
+def adjust_contrast(image_array: ndarray):
+    if sk.exposure.is_low_contrast(image_array):
+        return sk.exposure.adjust_log(image_array, 1)
 
 
 def random_rotation(image_array: ndarray):
@@ -57,7 +63,7 @@ def whole_function(event):
         current_folder_name = os.path.basename(dir)
         images_in_dir = [os.path.join(current_folder_path, f) for f in os.listdir(current_folder_path) if
                          os.path.isfile(os.path.join(current_folder_path, f))]
-        f = open("dataset.csv", "w+")
+        f = open("{save_folder_path}dataset.csv", "w+")
 
         single_image_transformations_number = round(desired_folder_size / len(images_in_dir))
 
@@ -66,6 +72,7 @@ def whole_function(event):
                 image_to_transform = resize_to_params(sk.io.imread(image), width, heigth)
                 if make_bw == True:
                     image_to_transform = make_img_grayscale(image_to_transform)
+                image_to_transform = adjust_contrast(image_to_transform)
                 num_transformations_to_apply = random.randint(0, len(available_transformations))
 
                 num_transformations = 0
@@ -77,7 +84,7 @@ def whole_function(event):
 
                 generated_name = generate_image_name(image_number)
                 image_number += 1
-                new_file_path = '%s/%s.jpg' % (generated_folder_path, generated_name)
+                new_file_path = '%s/%s.jpg' % (save_folder_path, generated_name)
                 f.write("%s, %s\n" % (generated_name, current_folder_name))
 
                 io.imsave(new_file_path, transformed_image)
@@ -136,6 +143,14 @@ def open_dir_dialog(event):
     folder_path = open_dialog.GetPath()
     open_dialog.Destroy()
 
+def open_save_dir_dialog(event):
+    open_dialog = wx.DirDialog(frame, "Choose save folder", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+    open_dialog.ShowModal()
+    print(open_dialog.GetPath())
+    global save_folder_path
+    save_folder_path = open_dialog.GetPath()
+    open_dialog.Destroy()
+
 
 panel = wx.Panel(frame, wx.ID_ANY)
 
@@ -166,6 +181,9 @@ heightTxt = wx.TextCtrl(panel, value=str(desired_image_height), pos=(120, 190))
 
 wx.StaticText(panel, label="Desired number of files for each category:", pos=(10, 240))
 filesNumberTxt = wx.TextCtrl(panel, value=str(desired_folder_size), pos=(300, 230))
+
+buttonToGetSaveFolder = wx.Button(panel, wx.ID_ANY, 'Select folder to save generated images', (10, 270))
+buttonToGetSaveFolder.Bind(wx.EVT_BUTTON, open_save_dir_dialog)
 
 buttonToExecute = wx.Button(panel, wx.ID_ANY, 'Execute', (10, 400))
 buttonToExecute.Bind(wx.EVT_BUTTON, whole_function)
