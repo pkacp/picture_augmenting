@@ -9,12 +9,20 @@ from skimage import filters
 from skimage import io
 import wx
 
+folder_path = ""
+generated_folder_path = "generated"
+desired_folder_size = 5
+make_bw = False
+desired_image_width = 32
+desired_image_height = 32
+available_transformations = {}
+
 
 def generate_image_name(number):
     return str(number).zfill(6)
 
 
-def resize_to_params(image_array: ndarray, width=64, height=64):
+def resize_to_params(image_array: ndarray, width=desired_image_width, height=desired_image_height):
     return sk.transform.resize(image_array, (width, height))
 
 
@@ -37,16 +45,7 @@ def make_img_grayscale(image_array: ndarray):
 
 
 def whole_function(event):
-    available_transformations = {
-        'rotate': random_rotation,
-        'noise': random_noise,
-        'blur': random_blur
-    }
-
-    folder_path = 'images/'
-    generated_folder_path = 'generated'
-    desired_folder_size = 5
-
+    print(folder_path)
     subfolders = [f.path for f in os.scandir(folder_path) if f.is_dir()]
     image_number = 1
     for dir in subfolders:
@@ -61,7 +60,8 @@ def whole_function(event):
         for image in images_in_dir:
             for i in range(single_image_transformations_number):
                 image_to_transform = resize_to_params(sk.io.imread(image))
-                # image_to_transform = make_img_grayscale(image_to_transform)
+                if make_bw == True:
+                    image_to_transform = make_img_grayscale(image_to_transform)
                 num_transformations_to_apply = random.randint(0, len(available_transformations))
 
                 num_transformations = 0
@@ -81,24 +81,78 @@ def whole_function(event):
         f.close()
 
 
+def on_color_change(e):
+    choice = colorRadioBox.GetStringSelection()
+    global make_bw
+    if choice == color_list[0]:
+        make_bw = False
+    if choice == color_list[1]:
+        make_bw = True
+
+
+def on_blur_change(e):
+    global available_transformations
+    val = blurChBox.GetValue()
+    if val == True:
+        available_transformations['blur'] = random_blur
+    else:
+        available_transformations.pop('blur')
+
+
+def on_rotation_change(e):
+    global available_transformations
+    val = rotationChBox.GetValue()
+    if val == True:
+        available_transformations['rotate'] = random_rotation
+    else:
+        available_transformations.pop('rotate')
+
+
+def on_noise_change(e):
+    global available_transformations
+    val = noiseChBox.GetValue()
+    if val == True:
+        available_transformations['noise'] = random_noise
+    else:
+        if "noise" in available_transformations:
+            available_transformations.pop('noise')
+
+
 app = wx.App()
 frame = wx.Frame(parent=None, title='Picture augmenting')
-frame.SetDimensions(0, 0, 640, 480)
+frame.SetSize(0, 0, 640, 480)
 
 
 def open_dir_dialog(event):
     open_dialog = wx.DirDialog(frame, "Choose main folder", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
     open_dialog.ShowModal()
     print(open_dialog.GetPath())
+    global folder_path
+    folder_path = open_dialog.GetPath()
     open_dialog.Destroy()
 
 
 panel = wx.Panel(frame, wx.ID_ANY)
-buttonToExecute = wx.Button(panel, wx.ID_ANY, 'Wykonaj program', (10, 400))
+buttonToExecute = wx.Button(panel, wx.ID_ANY, 'Execute', (10, 400))
 buttonToExecute.Bind(wx.EVT_BUTTON, whole_function)
 
-buttonToGetMainFolder = wx.Button(panel, wx.ID_ANY, 'Podaj ścieżkę do folderu', (10, 10))
+buttonToGetMainFolder = wx.Button(panel, wx.ID_ANY, 'Select folder with images', (10, 10))
 buttonToGetMainFolder.Bind(wx.EVT_BUTTON, open_dir_dialog)
+
+color_list = ['RGB', 'Grayscale']
+
+colorRadioBox = wx.RadioBox(panel, label='Choose color palette', pos=(10, 50), choices=color_list, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+colorRadioBox.Bind(wx.EVT_RADIOBOX, on_color_change)
+
+blurChBox = wx.CheckBox(panel, id=21, label="Blur", pos=(10, 100), name="blurChBox")
+blurChBox.Bind(wx.EVT_CHECKBOX, on_blur_change)
+
+rotationChBox = wx.CheckBox(panel, id=22, label="Rotation", pos=(10, 120), name="rotationChBox")
+rotationChBox.Bind(wx.EVT_CHECKBOX, on_rotation_change)
+
+noiseChBox = wx.CheckBox(panel, id=23, label="Noise", pos=(10, 140), name="noiseChBox")
+noiseChBox.Bind(wx.EVT_CHECKBOX, on_noise_change)
+
 
 frame.Centre()
 frame.Show()
